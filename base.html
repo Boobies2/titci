@@ -1,0 +1,45 @@
+﻿<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Analizador{% endblock %}</title>
+  <style>
+    body { font-family: "Segoe UI", sans-serif; margin: 0; background: #f5f7fb; color: #1f2937; }
+    .wrap { max-width: 1300px; margin: 0 auto; padding: 18px; }
+    .nav { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+    .nav a { text-decoration: none; border: 1px solid #c9d2df; border-radius: 8px; padding: 7px 10px; color: #1f2937; background: #fff; }
+    .nav a.active { background: #0b67d0; border-color: #0b67d0; color: #fff; }
+    .card { background: #fff; border: 1px solid #dbe1ea; border-radius: 12px; padding: 14px; margin-bottom: 14px; }
+    .flash { padding: 10px 12px; border-radius: 8px; margin-bottom: 10px; }
+    .success { background: #e8f7ec; border: 1px solid #b6e3c1; }
+    .warning { background: #fff8e6; border: 1px solid #f3d897; }
+    .danger { background: #fdecec; border: 1px solid #f2b8b8; }
+    .muted { color: #5b6b7f; }
+    .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+    .placeholder { min-height: 120px; border: 1px dashed #c9d2df; border-radius: 10px; padding: 12px; background: #fafcff; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="nav">
+      <a href="{{ url_for('index') }}" class="{{ 'active' if request.endpoint == 'index' else '' }}">Главная</a>
+      <a href="{{ url_for('parser_config') }}" class="{{ 'active' if request.endpoint == 'parser_config' else '' }}">Конфиг парсера</a>
+      <a href="{{ url_for('charts') }}" class="{{ 'active' if request.endpoint == 'charts' else '' }}">Диаграммы</a>
+      <a href="{{ url_for('database_page') }}" class="{{ 'active' if request.endpoint == 'database_page' else '' }}">БД</a>
+      <a href="{{ url_for('users_page') }}" class="{{ 'active' if request.endpoint == 'users_page' else '' }}">Пользователи</a>
+      <a href="{{ url_for('recommendations') }}" class="{{ 'active' if request.endpoint == 'recommendations' else '' }}">Рекомендации</a>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="flash {{ category }}">{{ message|fix_text }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </div>
+</body>
+</html>

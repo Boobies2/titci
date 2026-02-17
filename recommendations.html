@@ -1,0 +1,90 @@
+﻿{% extends "base.html" %}
+{% block title %}Рекомендации{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>Рекомендации для пользователей</h1>
+  <p class="muted">Подбор вакансий на основе профиля пользователя из БД.</p>
+
+  <form method="get" action="{{ url_for('recommendations') }}" style="display:flex; gap:8px; align-items:center;">
+    <label for="user_id"><b>Пользователь:</b></label>
+    <select id="user_id" name="user_id" required>
+      <option value="">-- выберите пользователя --</option>
+      {% for u in users %}
+        <option value="{{ u.id }}" {% if selected_user and selected_user.id == u.id %}selected{% endif %}>
+          #{{ u.id }} {{ u.first_name or '' }} {{ u.last_name or '' }}
+        </option>
+      {% endfor %}
+    </select>
+    <button type="submit">Показать рекомендации</button>
+  </form>
+</div>
+
+{% if selected_user %}
+<div class="card">
+  <h3>Профиль пользователя #{{ selected_user.id }}</h3>
+  <p>
+    <b>Имя:</b> {{ selected_user.first_name or '' }} {{ selected_user.last_name or '' }}
+    | <b>Желаемый доход:</b> {{ selected_user.desired_income if selected_user.desired_income is not none else 'не задан' }}
+    | <b>Специальность:</b> {{ selected_user.specialty_name or 'не задана' }}
+  </p>
+</div>
+
+<div class="card" style="overflow:auto;">
+  <h3>Подходящие вакансии ({{ recommendations_data|length }})</h3>
+  <table class="data-table" style="width:100%; border-collapse:collapse;">
+    <thead>
+      <tr>
+        <th>Скор</th>
+        <th>Совп. навыков</th>
+        <th>ID</th>
+        <th>Ссылка</th>
+        <th>Вакансия</th>
+        <th>Компания</th>
+        <th>Зарплата от</th>
+        <th>Зарплата до</th>
+        <th>Город</th>
+        <th>График</th>
+        <th>Формат</th>
+        <th>Опубликована</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in recommendations_data %}
+      <tr>
+        <td><b>{{ r.match_score }}</b></td>
+        <td>{{ r.matched_skills_count }}</td>
+        <td>{{ r.vacancy_id }}</td>
+        <td>
+          <a href="{{ r.vacancy_url }}" target="_blank" rel="noopener noreferrer">Открыть</a>
+        </td>
+        <td>{{ r.title }}</td>
+        <td>{{ r.company_name or '' }}</td>
+        <td>{{ r.income_from if r.income_from is not none else '' }}</td>
+        <td>{{ r.income_to if r.income_to is not none else '' }}</td>
+        <td>{{ r.city_name or '' }}</td>
+        <td>{{ r.schedule_name or '' }}</td>
+        <td>{{ r.work_format_name or '' }}</td>
+        <td>{{ r.published_at if r.published_at else '' }}</td>
+      </tr>
+      {% endfor %}
+      {% if not recommendations_data %}
+      <tr><td colspan="12">Рекомендации не найдены.</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h3>Топ навыков в рекомендациях</h3>
+  {% if top_skills %}
+    <ul>
+      {% for s in top_skills %}
+        <li>{{ s.name }} ({{ s.count }})</li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>Навыки не найдены.</p>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

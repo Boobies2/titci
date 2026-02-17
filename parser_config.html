@@ -1,0 +1,19 @@
+﻿{% extends "base.html" %}
+{% block title %}Конфиг парсера{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>Конфиг analizador.py</h1>
+  <p class="muted">Редактирование файла <code>analizador_config.json</code> в формате JSON.</p>
+</div>
+
+<div class="card">
+  <form method="post" action="{{ url_for('parser_config') }}">
+    <label for="config_json"><b>JSON конфиг</b></label>
+    <textarea id="config_json" name="config_json" style="width:100%; min-height:520px; font-family:Consolas,monospace; font-size:13px;">{{ config_text }}</textarea>
+    <div style="margin-top:10px; display:flex; gap:8px; align-items:center;">
+      <button type="submit">Сохранить конфиг</button>
+      <span class="muted">После сохранения перезапусти процесс парсера, чтобы применить изменения.</span>
+    </div>
+  </form>
+</div>
+{% endblock %}

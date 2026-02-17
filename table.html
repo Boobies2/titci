@@ -1,0 +1,12 @@
+﻿{% extends "base.html" %}
+{% block title %}Таблица{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>Просмотр таблицы</h1>
+  <p><b>Файл:</b> {{ file_name }}</p>
+  <p><b>Строк всего:</b> {{ rows_total }} | <b>Показано:</b> {{ rows_shown }}</p>
+</div>
+<div class="card" style="overflow:auto;">
+  {{ table_html|safe }}
+</div>
+{% endblock %}

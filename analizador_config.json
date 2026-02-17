@@ -1,0 +1,50 @@
+{
+  "hh_api_base": "https://api.hh.ru",
+  "request_timeout": 20,
+  "retries": 3,
+  "delay": 3,
+  "async_concurrency": 20,
+  "areas_priority": [
+    22,
+    113
+  ],
+  "min_vlad_count": 30,
+  "currency_rates": {
+    "RUR": 1,
+    "RUB": 1,
+    "USD": 90,
+    "EUR": 100,
+    "KZT": 0.2
+  },
+  "skill_keywords": [
+    "python",
+    "sql",
+    "pandas",
+    "numpy",
+    "excel",
+    "power bi",
+    "tableau",
+    "1c",
+    "spark",
+    "hadoop",
+    "docker",
+    "kubernetes",
+    "linux",
+    "git",
+    "airflow"
+  ],
+  "search_queries": [
+    "java"
+  ],
+  "per_page": 50,
+  "pages_to_parse": 4,
+  "pg": {
+    "host": "89.223.65.229",
+    "port": 5432,
+    "database": "msod_database",
+    "schema": "msod19",
+    "user": "airflow_orchestrator",
+    "password": "D4g_Run_0p3rat0r!"
+  },
+  "progress_file": "analizador_progress.json"
+}

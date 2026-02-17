@@ -1,0 +1,319 @@
+﻿{% extends "base.html" %}
+{% block title %}Пользователи{% endblock %}
+{% block content %}
+<style>
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+  }
+  .modal-backdrop.open {
+    display: flex;
+  }
+  .modal-card {
+    width: min(720px, 92vw);
+    max-height: 80vh;
+    overflow: auto;
+    background: #fff;
+    border: 1px solid #dbe1ea;
+    border-radius: 10px;
+    padding: 12px;
+  }
+  .skills-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(220px, 1fr));
+    gap: 6px 10px;
+    margin-top: 8px;
+  }
+  .skill-line {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .modal-actions {
+    position: sticky;
+    bottom: 0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 8px;
+    background: #fff;
+    border-top: 1px solid #e5e7eb;
+  }
+</style>
+
+<div class="card">
+  <h1>Пользователи</h1>
+  <p class="muted">Создание, редактирование и удаление пользователей. Данные сохраняются в PostgreSQL.</p>
+</div>
+
+<div class="card">
+  <h3>{{ 'Редактирование пользователя #' ~ edit_user.id if edit_user else 'Создание пользователя' }}</h3>
+  {% set selected_skill_ids = (edit_user.skill_ids if edit_user and edit_user.skill_ids else ([edit_user.skills_id] if edit_user and edit_user.skills_id else [])) %}
+
+  <form method="post" action="{{ url_for('users_update', user_id=edit_user.id) if edit_user else url_for('users_create') }}">
+    <div class="grid" style="grid-template-columns: repeat(3, minmax(180px, 1fr));">
+      <label>Имя
+        <input name="first_name" value="{{ edit_user.first_name if edit_user else '' }}" style="width:100%;" />
+      </label>
+      <label>Фамилия
+        <input name="last_name" value="{{ edit_user.last_name if edit_user else '' }}" style="width:100%;" />
+      </label>
+
+      <label>Опыт
+        <select name="desired_experience_id" style="width:100%;">
+          <option value="">--</option>
+          {% for x in lookups.experience_levels %}
+            <option value="{{ x.id }}" {% if edit_user and edit_user.desired_experience_id == x.id %}selected{% endif %}>{{ x.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+
+      <label>Желаемый доход
+        <input name="desired_income" type="number" step="0.01" value="{{ edit_user.desired_income if edit_user and edit_user.desired_income is not none else '' }}" style="width:100%;" />
+      </label>
+
+      <label>Образование
+        <select name="education_id" style="width:100%;">
+          <option value="">--</option>
+          {% for x in lookups.education %}
+            <option value="{{ x.id }}" {% if edit_user and edit_user.education_id == x.id %}selected{% endif %}>{{ x.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+
+      <label>Специальность
+        <select name="specialty_id" style="width:100%;">
+          <option value="">--</option>
+          {% for x in lookups.specialties %}
+            <option value="{{ x.id }}" {% if edit_user and edit_user.specialty_id == x.id %}selected{% endif %}>{{ x.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+
+      <label>Навык
+        <input type="hidden" name="skills_id" id="skills_id" value="{{ selected_skill_ids[0] if selected_skill_ids else '' }}" />
+        <div id="skillsIdsContainer">
+          {% for sid in selected_skill_ids %}
+            <input type="hidden" name="skills_ids" value="{{ sid }}" />
+          {% endfor %}
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <button type="button" id="openSkillModal">Выбрать навыки</button>
+          <span id="selectedSkillLabel" class="muted">{{ edit_user.skill_names if edit_user and edit_user.skill_names else 'не выбраны' }}</span>
+        </div>
+      </label>
+
+      <label>Желаемая занятость
+        <select name="desired_employment_id" style="width:100%;">
+          <option value="">--</option>
+          {% for x in lookups.employment_types %}
+            <option value="{{ x.id }}" {% if edit_user and edit_user.desired_employment_id == x.id %}selected{% endif %}>{{ x.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+
+      <label>Город
+        <select name="city_id" style="width:100%;">
+          <option value="">--</option>
+          {% for x in lookups.cities %}
+            <option value="{{ x.id }}" {% if edit_user and edit_user.city_id == x.id %}selected{% endif %}>{{ x.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+
+      <label>Желаемый график
+        <select name="desired_schedule_id" style="width:100%;">
+          <option value="">--</option>
+          {% for x in lookups.schedules %}
+            <option value="{{ x.id }}" {% if edit_user and edit_user.desired_schedule_id == x.id %}selected{% endif %}>{{ x.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+
+      <label>Желаемый формат работы
+        <select name="desired_work_format_id" style="width:100%;">
+          <option value="">--</option>
+          {% for x in lookups.work_formats %}
+            <option value="{{ x.id }}" {% if edit_user and edit_user.desired_work_format_id == x.id %}selected{% endif %}>{{ x.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+    </div>
+
+    <div style="margin-top:12px; display:flex; gap:8px;">
+      <button type="submit">{{ 'Сохранить изменения' if edit_user else 'Создать пользователя' }}</button>
+      {% if edit_user %}
+        <a href="{{ url_for('users_page') }}">Отмена</a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+<div class="card" style="overflow:auto;">
+  <h3>Список пользователей</h3>
+  <table class="data-table" style="width:100%; border-collapse:collapse;">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Имя</th>
+        <th>Фамилия</th>
+        <th>Образование</th>
+        <th>Специальность</th>
+        <th>Опыт</th>
+        <th>Навыки</th>
+        <th>Занятость</th>
+        <th>Желаемый доход</th>
+        <th>Формат</th>
+        <th>Город</th>
+        <th>График</th>
+        <th>Действия</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for u in users %}
+      <tr>
+        <td>{{ u.id }}</td>
+        <td>{{ u.first_name or '' }}</td>
+        <td>{{ u.last_name or '' }}</td>
+        <td>{{ u.education_name or '' }}</td>
+        <td>{{ u.specialty_name or '' }}</td>
+        <td>{{ u.experience_name or '' }}</td>
+        <td>{{ u.skill_names or '' }}</td>
+        <td>{{ u.employment_name or '' }}</td>
+        <td>{{ u.desired_income if u.desired_income is not none else '' }}</td>
+        <td>{{ u.work_format_name or '' }}</td>
+        <td>{{ u.city_name or '' }}</td>
+        <td>{{ u.schedule_name or '' }}</td>
+        <td>
+          <a href="{{ url_for('users_page', edit_user_id=u.id) }}">Редактировать</a>
+          <form method="post" action="{{ url_for('users_delete', user_id=u.id) }}" style="display:inline;" onsubmit="return confirm('Удалить пользователя #{{ u.id }}?');">
+            <button type="submit">Удалить</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+      {% if not users %}
+      <tr><td colspan="13">Пользователи не найдены.</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+
+<div id="skillsModal" class="modal-backdrop">
+  <div class="modal-card">
+    <h3>Выбор навыков</h3>
+    <p class="muted">Можно выбрать несколько навыков.</p>
+    <input id="skillSearch" type="text" placeholder="Поиск навыка..." style="width:100%; margin-top:8px;" />
+    <div class="skills-grid">
+      {% for x in lookups.skills %}
+        <label class="skill-line" data-skill-label="{{ x.name|lower }}">
+          <input
+            type="checkbox"
+            name="skill_picker"
+            value="{{ x.id }}"
+            data-name="{{ x.name }}"
+            {% if x.id in selected_skill_ids %}checked{% endif %}
+          />
+          <span>{{ x.name }}</span>
+        </label>
+      {% endfor %}
+    </div>
+    <div class="modal-actions">
+      <button type="button" id="applySkill">Применить</button>
+      <button type="button" id="clearSkill">Очистить</button>
+      <button type="button" id="closeSkillModal">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    const modal = document.getElementById('skillsModal');
+    const openBtn = document.getElementById('openSkillModal');
+    const closeBtn = document.getElementById('closeSkillModal');
+    const applyBtn = document.getElementById('applySkill');
+    const clearBtn = document.getElementById('clearSkill');
+    const searchInput = document.getElementById('skillSearch');
+    const hiddenSkill = document.getElementById('skills_id');
+    const hiddenSkillsContainer = document.getElementById('skillsIdsContainer');
+    const label = document.getElementById('selectedSkillLabel');
+
+    if (!modal || !openBtn || !hiddenSkill || !hiddenSkillsContainer || !label) return;
+
+    function selectedSkillInputs() {
+      return Array.from(document.querySelectorAll('input[name="skill_picker"]:checked'));
+    }
+
+    function renderHiddenSkills(ids) {
+      hiddenSkillsContainer.innerHTML = '';
+      ids.forEach((id) => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'skills_ids';
+        input.value = id;
+        hiddenSkillsContainer.appendChild(input);
+      });
+      hiddenSkill.value = ids.length ? String(ids[0]) : '';
+    }
+
+    function updateLabel(names) {
+      if (!names.length) {
+        label.textContent = 'не выбраны';
+        return;
+      }
+      const preview = names.slice(0, 3).join(', ');
+      label.textContent = names.length > 3 ? `${preview} (+${names.length - 3})` : preview;
+    }
+
+    openBtn.addEventListener('click', () => modal.classList.add('open'));
+    closeBtn.addEventListener('click', () => modal.classList.remove('open'));
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.classList.remove('open');
+    });
+
+    applyBtn.addEventListener('click', () => {
+      const selected = selectedSkillInputs();
+      const ids = selected.map((x) => x.value);
+      const names = selected.map((x) => x.dataset.name || ('ID ' + x.value));
+      renderHiddenSkills(ids);
+      updateLabel(names);
+      modal.classList.remove('open');
+    });
+
+    clearBtn.addEventListener('click', () => {
+      selectedSkillInputs().forEach((x) => {
+        x.checked = false;
+      });
+      renderHiddenSkills([]);
+      updateLabel([]);
+    });
+
+    if (searchInput) {
+      searchInput.addEventListener('input', () => {
+        const query = searchInput.value.trim().toLowerCase();
+        const rows = Array.from(modal.querySelectorAll('.skill-line'));
+        rows.forEach((row) => {
+          const value = (row.getAttribute('data-skill-label') || '').toLowerCase();
+          row.style.display = !query || value.includes(query) ? 'flex' : 'none';
+        });
+      });
+    }
+
+    const initial = selectedSkillInputs().map((x) => x.dataset.name || ('ID ' + x.value));
+    updateLabel(initial);
+    renderHiddenSkills(selectedSkillInputs().map((x) => x.value));
+    document.querySelectorAll('input[name="skill_picker"]').forEach((x) => {
+      x.addEventListener('change', () => {
+        const names = selectedSkillInputs().map((s) => s.dataset.name || ('ID ' + s.value));
+        updateLabel(names);
+      });
+    });
+  })();
+</script>
+{% endblock %}

@@ -1,0 +1,75 @@
+﻿{% extends "base.html" %}
+{% block title %}БД{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>База данных ({{ tables|length }} таблиц)</h1>
+  <p class="muted">Просмотр таблиц схемы {{ 'msod19' }} и диаграммы связей.</p>
+</div>
+
+<div class="grid" style="grid-template-columns: 340px 1fr; align-items:start;">
+  <div class="card">
+    <h3>Таблицы</h3>
+    {% if tables %}
+      <ul style="padding-left:18px; margin:0;">
+      {% for t in tables %}
+        <li>
+          <a href="{{ url_for('database_page', table=t, limit=limit) }}">{{ t }}</a>
+          <span class="muted">({{ table_counts.get(t, 0) }} rows)</span>
+        </li>
+      {% endfor %}
+      </ul>
+    {% else %}
+      <p>Таблицы не найдены.</p>
+    {% endif %}
+  </div>
+
+  <div>
+    <div class="card">
+      <h3>ER-диаграмма связей</h3>
+      <div class="muted" style="margin-bottom:8px;">Построено по внешним ключам схемы.</div>
+      <div class="mermaid">{{ er_diagram }}</div>
+    </div>
+
+    <div class="card">
+      <h3>Просмотр таблицы</h3>
+      <form method="get" action="{{ url_for('database_page') }}" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+        <label>Таблица
+          <select name="table">
+            <option value="">-- выберите --</option>
+            {% for t in tables %}
+              <option value="{{ t }}" {% if selected_table == t %}selected{% endif %}>{{ t }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>Лимит строк
+          <input type="number" name="limit" min="1" max="500" value="{{ limit }}" />
+        </label>
+        <button type="submit">Показать</button>
+      </form>
+
+      {% if selected_table %}
+        <p style="margin-top:10px;"><b>Таблица:</b> {{ selected_table }}</p>
+        {% if preview_html %}
+          <div style="overflow:auto;">
+            {{ preview_html|safe }}
+          </div>
+        {% else %}
+          <p>Нет данных для отображения.</p>
+        {% endif %}
+
+        <h4 style="margin-top:14px;">Колонки</h4>
+        <ul style="padding-left:18px;">
+          {% for c in columns_by_table.get(selected_table, []) %}
+            <li><code>{{ c.name }}</code> : {{ c.type }} {% if c.nullable %}(nullable){% else %}(not null){% endif %}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({ startOnLoad: true, securityLevel: 'loose' });
+</script>
+{% endblock %}

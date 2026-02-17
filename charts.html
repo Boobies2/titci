@@ -1,0 +1,406 @@
+﻿{% extends "base.html" %}
+{% block title %}Диаграммы{% endblock %}
+{% block content %}
+<style>
+  .chart-wrap {
+    position: relative;
+    height: 300px;
+  }
+  .chart-wrap.tall {
+    height: 360px;
+  }
+  .chart-wrap.skills {
+    height: 420px;
+  }
+  @media (max-width: 900px) {
+    .chart-wrap,
+    .chart-wrap.tall,
+    .chart-wrap.skills {
+      height: 280px;
+    }
+  }
+</style>
+<div class="card">
+  <h1>Диаграммы из БД</h1>
+  <p class="muted">Визуализация количества вакансий, зарплат, компаний и навыков по бизнес-ролям.</p>
+  <form method="get" action="{{ url_for('charts') }}" style="display:grid; grid-template-columns: repeat(5, minmax(140px, 1fr)); gap:8px; margin-top:10px;">
+    <label>Город
+      <select name="city_id" style="width:100%;">
+        <option value="">Все</option>
+        {% for c in filter_options.cities %}
+          <option value="{{ c.id }}" {% if filters.city_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Занятость
+      <select name="employment_id" style="width:100%;">
+        <option value="">Все</option>
+        {% for e in filter_options.employment_types %}
+          <option value="{{ e.id }}" {% if filters.employment_id == e.id %}selected{% endif %}>{{ e.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Навык
+      <select name="skill_id" style="width:100%;">
+        <option value="">Все</option>
+        {% for s in filter_options.skills %}
+          <option value="{{ s.id }}" {% if filters.skill_id == s.id %}selected{% endif %}>{{ s.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Формат
+      <select name="work_format_id" style="width:100%;">
+        <option value="">Все</option>
+        {% for w in filter_options.work_formats %}
+          <option value="{{ w.id }}" {% if filters.work_format_id == w.id %}selected{% endif %}>{{ w.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Опыт
+      <select name="experience_id" style="width:100%;">
+        <option value="">Все</option>
+        {% for e in filter_options.experience_levels %}
+          <option value="{{ e.id }}" {% if filters.experience_id == e.id %}selected{% endif %}>{{ e.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>ЗП от
+      <input type="number" step="1" min="0" name="salary_min" value="{{ filters.salary_min if filters.salary_min is not none else '' }}" style="width:100%;" />
+    </label>
+    <label>ЗП до
+      <input type="number" step="1" min="0" name="salary_max" value="{{ filters.salary_max if filters.salary_max is not none else '' }}" style="width:100%;" />
+    </label>
+    <label>Дата от
+      <input type="date" name="date_from" value="{{ filters.date_from or '' }}" style="width:100%;" />
+    </label>
+    <label>Дата до
+      <input type="date" name="date_to" value="{{ filters.date_to or '' }}" style="width:100%;" />
+    </label>
+    <div style="display:flex; gap:8px; align-items:flex-end;">
+      {% for sid in filters.specialty_vacancies_ids or [] %}
+        <input type="hidden" name="specialty_vacancies_ids" value="{{ sid }}" />
+      {% endfor %}
+      <input type="hidden" name="specialty_companies_id" value="{{ filters.specialty_companies_id or '' }}" />
+      <input type="hidden" name="specialty_salary_id" value="{{ filters.specialty_salary_id or '' }}" />
+      <input type="hidden" name="specialty_skills_id" value="{{ filters.specialty_skills_id or '' }}" />
+      <button type="submit">Применить</button>
+      <a href="{{ url_for('charts') }}">Сброс</a>
+    </div>
+  </form>
+</div>
+
+<div class="grid" style="grid-template-columns: 1fr 1fr;">
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+      <h3 style="margin:0;">Количество вакансий по бизнес-ролям</h3>
+      <label>Тип
+        <select id="vacanciesChartType">
+          <option value="bar" selected>Bar</option>
+          <option value="doughnut">Doughnut</option>
+          <option value="pie">Pie</option>
+          <option value="polarArea">Polar Area</option>
+        </select>
+      </label>
+    </div>
+    <form method="get" action="{{ url_for('charts') }}" style="display:flex; gap:8px; align-items:flex-end; margin-bottom:8px;">
+      <label>Специальность
+        <select name="specialty_vacancies_ids" multiple size="6">
+          {% for s in filter_options.specialties %}
+            <option value="{{ s.id }}" {% if s.id in (filters.specialty_vacancies_ids or []) %}selected{% endif %}>{{ s.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <input type="hidden" name="city_id" value="{{ filters.city_id or '' }}" />
+      <input type="hidden" name="employment_id" value="{{ filters.employment_id or '' }}" />
+      <input type="hidden" name="skill_id" value="{{ filters.skill_id or '' }}" />
+      <input type="hidden" name="work_format_id" value="{{ filters.work_format_id or '' }}" />
+      <input type="hidden" name="experience_id" value="{{ filters.experience_id or '' }}" />
+      <input type="hidden" name="salary_min" value="{{ filters.salary_min if filters.salary_min is not none else '' }}" />
+      <input type="hidden" name="salary_max" value="{{ filters.salary_max if filters.salary_max is not none else '' }}" />
+      <input type="hidden" name="date_from" value="{{ filters.date_from or '' }}" />
+      <input type="hidden" name="date_to" value="{{ filters.date_to or '' }}" />
+      <input type="hidden" name="specialty_companies_id" value="{{ filters.specialty_companies_id or '' }}" />
+      <input type="hidden" name="specialty_salary_id" value="{{ filters.specialty_salary_id or '' }}" />
+      <input type="hidden" name="specialty_skills_id" value="{{ filters.specialty_skills_id or '' }}" />
+      <button type="submit">Ок</button>
+    </form>
+    <div class="chart-wrap">
+      <canvas id="vacanciesChart"></canvas>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+      <h3 style="margin:0;">Компании по бизнес-ролям</h3>
+      <label>Тип
+        <select id="companiesChartType">
+          <option value="bar" selected>Bar</option>
+          <option value="doughnut">Doughnut</option>
+          <option value="pie">Pie</option>
+          <option value="polarArea">Polar Area</option>
+        </select>
+      </label>
+    </div>
+    <form method="get" action="{{ url_for('charts') }}" style="display:flex; gap:8px; align-items:flex-end; margin-bottom:8px;">
+      <label>Специальность
+        <select name="specialty_companies_id">
+          <option value="">Все</option>
+          {% for s in filter_options.specialties %}
+            <option value="{{ s.id }}" {% if filters.specialty_companies_id == s.id %}selected{% endif %}>{{ s.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <input type="hidden" name="city_id" value="{{ filters.city_id or '' }}" />
+      <input type="hidden" name="employment_id" value="{{ filters.employment_id or '' }}" />
+      <input type="hidden" name="skill_id" value="{{ filters.skill_id or '' }}" />
+      <input type="hidden" name="work_format_id" value="{{ filters.work_format_id or '' }}" />
+      <input type="hidden" name="experience_id" value="{{ filters.experience_id or '' }}" />
+      <input type="hidden" name="salary_min" value="{{ filters.salary_min if filters.salary_min is not none else '' }}" />
+      <input type="hidden" name="salary_max" value="{{ filters.salary_max if filters.salary_max is not none else '' }}" />
+      <input type="hidden" name="date_from" value="{{ filters.date_from or '' }}" />
+      <input type="hidden" name="date_to" value="{{ filters.date_to or '' }}" />
+      {% for sid in filters.specialty_vacancies_ids or [] %}
+        <input type="hidden" name="specialty_vacancies_ids" value="{{ sid }}" />
+      {% endfor %}
+      <input type="hidden" name="specialty_salary_id" value="{{ filters.specialty_salary_id or '' }}" />
+      <input type="hidden" name="specialty_skills_id" value="{{ filters.specialty_skills_id or '' }}" />
+      <button type="submit">Ок</button>
+    </form>
+    <div class="chart-wrap">
+      <canvas id="companiesChart"></canvas>
+    </div>
+  </div>
+
+  <div class="card" style="grid-column: span 2;">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+      <h3 style="margin:0;">Зарплаты по бизнес-ролям</h3>
+      <label>Тип
+        <select id="salaryChartType">
+          <option value="line" selected>Line</option>
+          <option value="bar">Bar</option>
+        </select>
+      </label>
+    </div>
+    <form method="get" action="{{ url_for('charts') }}" style="display:flex; gap:8px; align-items:flex-end; margin-bottom:8px;">
+      <label>Специальность
+        <select name="specialty_salary_id">
+          <option value="">Все</option>
+          {% for s in filter_options.specialties %}
+            <option value="{{ s.id }}" {% if filters.specialty_salary_id == s.id %}selected{% endif %}>{{ s.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <input type="hidden" name="city_id" value="{{ filters.city_id or '' }}" />
+      <input type="hidden" name="employment_id" value="{{ filters.employment_id or '' }}" />
+      <input type="hidden" name="skill_id" value="{{ filters.skill_id or '' }}" />
+      <input type="hidden" name="work_format_id" value="{{ filters.work_format_id or '' }}" />
+      <input type="hidden" name="experience_id" value="{{ filters.experience_id or '' }}" />
+      <input type="hidden" name="salary_min" value="{{ filters.salary_min if filters.salary_min is not none else '' }}" />
+      <input type="hidden" name="salary_max" value="{{ filters.salary_max if filters.salary_max is not none else '' }}" />
+      <input type="hidden" name="date_from" value="{{ filters.date_from or '' }}" />
+      <input type="hidden" name="date_to" value="{{ filters.date_to or '' }}" />
+      {% for sid in filters.specialty_vacancies_ids or [] %}
+        <input type="hidden" name="specialty_vacancies_ids" value="{{ sid }}" />
+      {% endfor %}
+      <input type="hidden" name="specialty_companies_id" value="{{ filters.specialty_companies_id or '' }}" />
+      <input type="hidden" name="specialty_skills_id" value="{{ filters.specialty_skills_id or '' }}" />
+      <button type="submit">Ок</button>
+    </form>
+    <div class="chart-wrap tall">
+      <canvas id="salaryChart"></canvas>
+    </div>
+  </div>
+
+  <div class="card" style="grid-column: span 2;">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+      <h3 style="margin:0;">Навыки по бизнес-ролям (топ-10 для выбранной роли)</h3>
+      <label>Тип
+        <select id="skillsChartType">
+          <option value="bar" selected>Bar</option>
+          <option value="radar">Radar</option>
+        </select>
+      </label>
+    </div>
+    <form method="get" action="{{ url_for('charts') }}" style="display:flex; gap:8px; align-items:flex-end; margin-bottom:8px;">
+      <label>Специальность
+        <select name="specialty_skills_id">
+          <option value="">Все</option>
+          {% for s in filter_options.specialties %}
+            <option value="{{ s.id }}" {% if filters.specialty_skills_id == s.id %}selected{% endif %}>{{ s.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <input type="hidden" name="city_id" value="{{ filters.city_id or '' }}" />
+      <input type="hidden" name="employment_id" value="{{ filters.employment_id or '' }}" />
+      <input type="hidden" name="skill_id" value="{{ filters.skill_id or '' }}" />
+      <input type="hidden" name="work_format_id" value="{{ filters.work_format_id or '' }}" />
+      <input type="hidden" name="experience_id" value="{{ filters.experience_id or '' }}" />
+      <input type="hidden" name="salary_min" value="{{ filters.salary_min if filters.salary_min is not none else '' }}" />
+      <input type="hidden" name="salary_max" value="{{ filters.salary_max if filters.salary_max is not none else '' }}" />
+      <input type="hidden" name="date_from" value="{{ filters.date_from or '' }}" />
+      <input type="hidden" name="date_to" value="{{ filters.date_to or '' }}" />
+      {% for sid in filters.specialty_vacancies_ids or [] %}
+        <input type="hidden" name="specialty_vacancies_ids" value="{{ sid }}" />
+      {% endfor %}
+      <input type="hidden" name="specialty_companies_id" value="{{ filters.specialty_companies_id or '' }}" />
+      <input type="hidden" name="specialty_salary_id" value="{{ filters.specialty_salary_id or '' }}" />
+      <button type="submit">Ок</button>
+    </form>
+    <label for="roleSelect">Бизнес-роль:</label>
+    <select id="roleSelect" style="margin-left:8px; padding:4px 8px;"></select>
+    <div class="chart-wrap skills" style="margin-top:12px;">
+      <canvas id="skillsChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const chartData = {{ chart_data_json|safe }};
+
+  const vacancies = chartData.vacancies_by_role || [];
+  const salaries = chartData.salary_by_role || [];
+  const companies = chartData.companies_by_role || [];
+  const skills = chartData.skills_by_role || [];
+
+  const palette = [
+    '#0b67d0', '#1f9d55', '#c53030', '#805ad5', '#d69e2e',
+    '#2b6cb0', '#dd6b20', '#2f855a', '#718096', '#e53e3e',
+  ];
+
+  function colorList(n) {
+    const out = [];
+    for (let i = 0; i < n; i += 1) out.push(palette[i % palette.length]);
+    return out;
+  }
+
+  let vacanciesChart = null;
+  let companiesChart = null;
+  let salaryChart = null;
+  let skillsChart = null;
+
+  function renderVacancies() {
+    const type = document.getElementById('vacanciesChartType').value;
+    const labels = vacancies.map(v => v.role);
+    const data = vacancies.map(v => v.count);
+    if (vacanciesChart) vacanciesChart.destroy();
+    vacanciesChart = new Chart(document.getElementById('vacanciesChart'), {
+      type,
+      data: {
+        labels,
+        datasets: [{
+          label: 'Количество вакансий',
+          data,
+          backgroundColor: ['pie', 'doughnut', 'polarArea'].includes(type) ? colorList(labels.length) : '#0b67d0'
+        }]
+      },
+      options: { responsive: true, maintainAspectRatio: false }
+    });
+  }
+
+  function renderCompanies() {
+    const type = document.getElementById('companiesChartType').value;
+    const labels = companies.map(v => v.role);
+    const data = companies.map(v => v.count);
+    if (companiesChart) companiesChart.destroy();
+    companiesChart = new Chart(document.getElementById('companiesChart'), {
+      type,
+      data: {
+        labels,
+        datasets: [{
+          label: 'Количество компаний',
+          data,
+          backgroundColor: ['pie', 'doughnut', 'polarArea'].includes(type) ? colorList(labels.length) : '#1f9d55'
+        }]
+      },
+      options: { responsive: true, maintainAspectRatio: false }
+    });
+  }
+
+  function renderSalary() {
+    const type = document.getElementById('salaryChartType').value;
+    const labels = salaries.map(v => v.role);
+    const salaryFrom = salaries.map(v => v.avg_income_from);
+    const salaryTo = salaries.map(v => v.avg_income_to);
+    if (salaryChart) salaryChart.destroy();
+    salaryChart = new Chart(document.getElementById('salaryChart'), {
+      type,
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Средняя зарплата от',
+            data: salaryFrom,
+            borderColor: '#0b67d0',
+            backgroundColor: 'rgba(11,103,208,0.25)',
+            tension: 0.2
+          },
+          {
+            label: 'Средняя зарплата до',
+            data: salaryTo,
+            borderColor: '#c53030',
+            backgroundColor: 'rgba(197,48,48,0.25)',
+            tension: 0.2
+          }
+        ]
+      },
+      options: { responsive: true, maintainAspectRatio: false }
+    });
+  }
+
+  const roleSelect = document.getElementById('roleSelect');
+  const uniqueSkillRoles = [...new Set(skills.map(x => x.role))];
+  uniqueSkillRoles.forEach(role => {
+    const option = document.createElement('option');
+    option.value = role;
+    option.textContent = role;
+    roleSelect.appendChild(option);
+  });
+
+  function renderSkillsChart(role) {
+    const type = document.getElementById('skillsChartType').value;
+    const roleSkills = skills.filter(x => x.role === role);
+    const labels = roleSkills.map(x => x.skill);
+    const values = roleSkills.map(x => x.count);
+
+    if (skillsChart) skillsChart.destroy();
+
+    skillsChart = new Chart(document.getElementById('skillsChart'), {
+      type,
+      data: {
+        labels,
+        datasets: [{
+          label: `Топ навыков: ${role}`,
+          data: values,
+          backgroundColor: type === 'radar' ? 'rgba(128,90,213,0.35)' : '#805ad5',
+          borderColor: '#805ad5'
+        }]
+      },
+      options: {
+        indexAxis: type === 'bar' ? 'y' : 'x',
+        responsive: true,
+        maintainAspectRatio: false
+      }
+    });
+  }
+
+  if (uniqueSkillRoles.length > 0) {
+    renderVacancies();
+    renderCompanies();
+    renderSalary();
+    renderSkillsChart(uniqueSkillRoles[0]);
+    roleSelect.addEventListener('change', (e) => renderSkillsChart(e.target.value));
+    document.getElementById('vacanciesChartType').addEventListener('change', renderVacancies);
+    document.getElementById('companiesChartType').addEventListener('change', renderCompanies);
+    document.getElementById('salaryChartType').addEventListener('change', renderSalary);
+    document.getElementById('skillsChartType').addEventListener('change', () => renderSkillsChart(roleSelect.value));
+  } else {
+    renderVacancies();
+    renderCompanies();
+    renderSalary();
+    document.getElementById('vacanciesChartType').addEventListener('change', renderVacancies);
+    document.getElementById('companiesChartType').addEventListener('change', renderCompanies);
+    document.getElementById('salaryChartType').addEventListener('change', renderSalary);
+  }
+</script>
+{% endblock %}
